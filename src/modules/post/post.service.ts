@@ -104,9 +104,9 @@ const getAllPost = async ({
     },
     include: {
       _count: {
-        select: {comments: true}
-      }
-    }
+        select: { comments: true },
+      },
+    },
   });
   const total = await prisma.post.count({
     where: {
@@ -165,8 +165,8 @@ const getPostById = async (postId: string) => {
           },
         },
         _count: {
-          select: {comments: true}
-        }
+          select: { comments: true },
+        },
       },
     });
     return postData;
@@ -174,91 +174,133 @@ const getPostById = async (postId: string) => {
   return result;
 };
 
-
-const getMyPosts = async(authorId: string) => {
+const getMyPosts = async (authorId: string) => {
   await prisma.user.findUniqueOrThrow({
     where: {
       id: authorId,
-      status: "ACTIVE"
-    },
-    select: {
-      id: true
-    }
-  })
-
-    const result = await prisma.post.findMany({
-        where: {
-            authorId
-        },
-        orderBy: {
-            createdAt: "desc"
-        },
-        include: {
-          _count: {
-            select: {
-              comments: true
-            }
-          }
-        }
-    });
-
-    // const total = await prisma.post.aggregate({
-    //   _count: {
-    //     id: true
-    //   },
-    //   where: {
-    //     authorId
-    //   }
-    // })
-
-    return result
-}
-
-const updatePost = async(postId: string, data: Partial<Post>, authorId: string, isAdmin: boolean)=>{
-  const postData = await prisma.post.findUniqueOrThrow({
-    where: {
-      id: postId
+      status: "ACTIVE",
     },
     select: {
       id: true,
-      authorId: true
-    }
-  })
+    },
+  });
 
-  if(!isAdmin && (postData.authorId !== authorId) ){
-    throw new Error("Forbidden access")
+  const result = await prisma.post.findMany({
+    where: {
+      authorId,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    include: {
+      _count: {
+        select: {
+          comments: true,
+        },
+      },
+    },
+  });
+
+  // const total = await prisma.post.aggregate({
+  //   _count: {
+  //     id: true
+  //   },
+  //   where: {
+  //     authorId
+  //   }
+  // })
+
+  return result;
+};
+
+const updatePost = async (
+  postId: string,
+  data: Partial<Post>,
+  authorId: string,
+  isAdmin: boolean
+) => {
+  const postData = await prisma.post.findUniqueOrThrow({
+    where: {
+      id: postId,
+    },
+    select: {
+      id: true,
+      authorId: true,
+    },
+  });
+
+  if (!isAdmin && postData.authorId !== authorId) {
+    throw new Error("Forbidden access");
   }
-  if(!isAdmin){
-    delete data.isFeatured
+  if (!isAdmin) {
+    delete data.isFeatured;
   }
   const result = await prisma.post.update({
     where: {
-      id: postData.id
+      id: postData.id,
     },
-    data
-  })
+    data,
+  });
   return result;
-}
+};
 
-const deletePost = async(postId: string, authorId:string, isAdmin: boolean)=>{
+const deletePost = async (
+  postId: string,
+  authorId: string,
+  isAdmin: boolean
+) => {
   const postData = await prisma.post.findUniqueOrThrow({
     where: {
-      id: postId
+      id: postId,
     },
     select: {
       id: true,
-      authorId: true
-    }
-  })
-  if(!isAdmin && (postData.authorId !== authorId) ){
-    throw new Error("Forbidden access")
+      authorId: true,
+    },
+  });
+  if (!isAdmin && postData.authorId !== authorId) {
+    throw new Error("Forbidden access");
   }
   return await prisma.post.delete({
     where: {
-      id: postId
-    }
-  })
-}
+      id: postId,
+    },
+  });
+};
+
+const getStats = async () => {
+  // postCount, publishedPosts, draftPosts, totalComments, totalViews
+  return await prisma.$transaction(async (tx) => {
+    const [totalPosts, publishedPosts, draftPosts, archivedPosts, totalComments, approvedComment, rejectedComment, totalUsers, adminCount, userCount, totalViews] =
+      await Promise.all([
+        await tx.post.count(),
+        await tx.post.count({where: {status: PostStatus.PUBLISHED}}),
+        await tx.post.count({where: {status: PostStatus.DRAFT}}),
+        await tx.post.count({where: {status: PostStatus.ARCHIVED}}),
+        await tx.comment.count(),
+        await tx.comment.count({where: {status: CommentStatus.APPROVED}}),
+        await tx.comment.count({where: {status: CommentStatus.REJECT}}),
+        await tx.user.count(),
+        await tx.user.count({where: {role: "ADMIN"}}),
+        await tx.user.count({where: {role: "USER"}}),
+        await tx.post.aggregate({_sum: {views: true}})
+      ]);
+
+    return {
+      totalPosts,
+      publishedPosts,
+      draftPosts,
+      archivedPosts,
+      totalComments,
+      approvedComment,
+      rejectedComment,
+      totalUsers,
+      adminCount,
+      userCount,
+      totalViews: totalViews._sum.views
+    };
+  });
+};
 
 export const postService = {
   createPost,
@@ -266,5 +308,6 @@ export const postService = {
   getPostById,
   getMyPosts,
   updatePost,
-  deletePost
+  deletePost,
+  getStats,
 };
