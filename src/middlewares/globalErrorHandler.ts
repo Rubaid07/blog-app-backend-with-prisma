@@ -11,12 +11,28 @@ function errorHandler(
   let errorMessage = "Internal Server Error";
   let errorDetails = err;
 
+  // PrismaClientValidationError
   if (err instanceof Prisma.PrismaClientValidationError) {
     statsCode = 400;
     errorMessage = "You provide incorrect field type or missing fields";
   }
+  // PrismaClientKnownRequestError
+  else if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    if(err.code === "P2025"){
+        statsCode = 400;
+        errorMessage = "An operation failed because it depends on one or more records that were required but not found."
+    }
+    else if(err.code === "P2002"){
+        statsCode = 400;
+        errorMessage = "Duplicate key error"
+    }
+    else if(err.code === "P2003"){
+        statsCode = 400;
+        errorMessage = "Foreign key constraint failed"
+    }
+}
 
-  res.status(500);
+  res.status(statsCode);
   res.json({
     message: errorMessage,
     error: errorDetails,
