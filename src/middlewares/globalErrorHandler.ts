@@ -16,21 +16,38 @@ function errorHandler(
     statsCode = 400;
     errorMessage = "You provide incorrect field type or missing fields";
   }
+
   // PrismaClientKnownRequestError
   else if (err instanceof Prisma.PrismaClientKnownRequestError) {
-    if(err.code === "P2025"){
-        statsCode = 400;
-        errorMessage = "An operation failed because it depends on one or more records that were required but not found."
+    if (err.code === "P2025") {
+      statsCode = 400;
+      errorMessage =
+        "An operation failed because it depends on one or more records that were required but not found.";
+    } else if (err.code === "P2002") {
+      statsCode = 400;
+      errorMessage = "Duplicate key error";
+    } else if (err.code === "P2003") {
+      statsCode = 400;
+      errorMessage = "Foreign key constraint failed";
     }
-    else if(err.code === "P2002"){
-        statsCode = 400;
-        errorMessage = "Duplicate key error"
+  }
+  
+  // PrismaClientUnknownRequestError
+  else if (err instanceof Prisma.PrismaClientUnknownRequestError) {
+    statsCode = 500;
+    errorMessage = "Error occurred during query execution";
+  }
+
+  else if(err instanceof Prisma.PrismaClientInitializationError){
+    if(err.errorCode === "P1000"){
+        statsCode = 401;
+        errorMessage = "Authentication failed"
     }
-    else if(err.code === "P2003"){
+    else if(err.errorCode === "P1001"){
         statsCode = 400;
-        errorMessage = "Foreign key constraint failed"
+        errorMessage = "Can't reach database server"
     }
-}
+  }
 
   res.status(statsCode);
   res.json({
