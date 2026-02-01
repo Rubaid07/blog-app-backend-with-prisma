@@ -114,7 +114,7 @@ const getAllPost = async ({
     },
   });
   return {
-    date: allPost,
+    data: allPost,
     pagination: {
       total,
       page,
