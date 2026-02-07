@@ -398,23 +398,6 @@ Administrators have special privileges to maintain platform quality:
 | ** Featured Posts** | Promote important posts to featured status |
 | ** Analytics Access** | View platform statistics and user activity |
 
-##  Project Structure
-```
-blog-app-backend/
-├── src/
-│   ├── controllers/      # Request handlers
-│   ├── middlewares/      # Authentication & validation
-│   ├── routes/           # API routes
-│   ├── services/         # Business logic
-│   ├── utils/            # Helper functions
-│   └── index.ts          # Application entry point
-├── prisma/
-│   ├── schema.prisma     # Database schema
-│   └── migrations/       # Database migrations
-├── .env                  # Environment variables
-├── package.json
-└── tsconfig.json
-```
 
 ##  Security Features
 
